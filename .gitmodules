@@ -1,0 +1,3 @@
+[submodule "blink-game-engine"]
+	path = blink-game-engine
+	url = git://github.com/viktorstrate/blink-game-engine.git

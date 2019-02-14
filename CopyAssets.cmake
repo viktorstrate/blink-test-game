@@ -1,0 +1,1 @@
+file( COPY ${SOURCE_DIR}/assets/ DESTINATION ${DESTINATION_DIR}/assets/ )
