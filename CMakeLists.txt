@@ -5,6 +5,7 @@ project(game)
 set(
     SRCS
         src/main.cpp
+        src/PlayerComponent.cpp
 )
 
 add_subdirectory(blink-game-engine/)

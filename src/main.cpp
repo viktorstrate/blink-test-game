@@ -2,7 +2,7 @@
 // Created by Viktor Hundahl Strate on 2019-02-03.
 //
 
-#include "Rendering.h"
+#include "graphics/Rendering.h"
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
@@ -16,14 +16,15 @@
 #include <stb_image.h>
 
 #include "Game.h"
-#include "Shader.h"
+#include "graphics/Shader.h"
 #include "components/CameraComponent.h"
 #include "Model.h"
-#include "VertexBuffer.h"
-#include "VertexArray.h"
+#include "graphics/VertexBuffer.h"
+#include "graphics/VertexArray.h"
 #include "GameObject.h"
+#include "PlayerComponent.h"
 
-GameObject* camera;
+GameObject* player;
 
 bool firstMouse = true;
 float lastMouseX = 0, lastMouseY = 0;
@@ -53,7 +54,7 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
         up += 1;
 
-    camera->getComponent<CameraComponent>()->ProcessKeyboard(forwards, sideways, up, deltaTime);
+    player->getComponent<PlayerComponent>()->ProcessKeyboard(forwards, sideways, up, deltaTime);
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
@@ -70,13 +71,13 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     lastMouseX = (float) xpos;
     lastMouseY = (float) ypos;
 
-    camera->getComponent<CameraComponent>()->ProcessMouseMovement(xoffset, yoffset);
+    player->getComponent<PlayerComponent>()->ProcessMouseMovement(xoffset, yoffset);
 }
 
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    camera->getComponent<CameraComponent>()->ProcessMouseScroll(yoffset);
+    player->getComponent<PlayerComponent>()->ProcessMouseScroll(yoffset);
 }
 
 glm::vec3 cubePositions[] = {
@@ -101,13 +102,24 @@ glm::vec3 pointLightPositions[] = {
 
 int main(int argc, char** argv)
 {
-    camera = new GameObject();
+//    auto* camera = new GameObject();
 
-    auto* camTrans = new TransformComponent();
-    camTrans->position = glm::vec3(1.0f, 2.0f, 5.0f);
+    auto* trans = new TransformComponent();
+    trans->position = glm::vec3(0.0f, 0.0f, 5.0f);
+    trans->rotation = glm::quat(glm::vec3(0.0f, glm::radians(90.0f), 0.0f));
+//    trans->rotation = glm::quat(glm::vec3(0.0f, 0.0f, 0.0f));
 
-    camera->addComponent(camTrans);
-    camera->addComponent(new CameraComponent(camera->getComponent<TransformComponent>()));
+    auto* cam = new CameraComponent(trans);
+
+    auto* plComp = new PlayerComponent(trans, cam);
+
+//    camera->addComponent(camTrans);
+//    camera->addComponent(new CameraComponent(camera->getComponent<TransformComponent>()));
+
+    player = new GameObject();
+    player->addComponent(trans);
+    player->addComponent(cam);
+    player->addComponent(plComp);
 
     Game game("Test Game", 800, 600);
 
@@ -276,11 +288,11 @@ int main(int argc, char** argv)
 
         processInput(game.window);
 
-        glm::mat4 view = camera->getComponent<CameraComponent>()->GetViewMatrix();
+        player->getComponent<PlayerComponent>()->update(deltaTime);
 
-        glm::mat4 projection;
-        projection = glm::perspective(glm::radians(camera->getComponent<CameraComponent>()->FOV), (float) game.screenWidth/(float) game.screenHeight,
-                                      0.1f, 100.0f);
+        glm::mat4 view = player->getComponent<CameraComponent>()->GetViewMatrix();
+
+        glm::mat4 projection = player->getComponent<CameraComponent>()->getProjectionMatrix((float)game.screenWidth/(float)game.screenHeight);
 
         glBindFramebuffer(GL_FRAMEBUFFER, FBO);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -311,7 +323,7 @@ int main(int argc, char** argv)
 
         lightingShader.setMat4("view", view);
         lightingShader.setMat4("projection", projection);
-        lightingShader.setVec3("viewPos", camera->getComponent<TransformComponent>()->position);
+        lightingShader.setVec3("viewPos", player->getComponent<TransformComponent>()->position);
 
         diffuseTexture.use(0);
         specularTexture.use(1);
@@ -334,7 +346,7 @@ int main(int argc, char** argv)
             lightingShader.setFloat(base + ".quadratic", 0.032);
         }
 
-        lightingShader.setVec3("spotLight.position", camera->getComponent<TransformComponent>()->position);
+        lightingShader.setVec3("spotLight.position", player->getComponent<TransformComponent>()->position);
         lightingShader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
         lightingShader.setVec3("spotLight.diffuse", 0.2f, 0.2f, 0.2f);
         lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
@@ -342,7 +354,7 @@ int main(int argc, char** argv)
         lightingShader.setFloat("spotLight.linear", 0.09);
         lightingShader.setFloat("spotLight.quadratic", 0.032);
 
-        lightingShader.setVec3("spotLight.direction", camera->getComponent<CameraComponent>()->Front);
+        lightingShader.setVec3("spotLight.direction", player->getComponent<CameraComponent>()->front());
         lightingShader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.0f)));
         lightingShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
 
@@ -351,9 +363,11 @@ int main(int argc, char** argv)
         for (unsigned int i = 0; i < 10; i++) {
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, cubePositions[i]);
-            float angle = 20.0f*i;
-            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-            model = glm::rotate(model, (float) glfwGetTime(), glm::vec3(i/10.0f, 0.6f, 0.5f));
+//            float angle = 20.0f*i;
+
+//            model = glm::rotate(model, (float) glfwGetTime() * 0.2f, glm::vec3(0.0f, 1.0f, 0.0f));
+            model = glm::rotate(model, (float) glfwGetTime(), glm::vec3(0.0f, 0.f, 1.f));
+
             lightingShader.setMat4("model", model);
 
             glDrawArrays(GL_TRIANGLES, 0, 36);
