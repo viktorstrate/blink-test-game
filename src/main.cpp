@@ -17,12 +17,13 @@
 
 #include "Game.h"
 #include "Shader.h"
-#include "Camera.h"
+#include "components/CameraComponent.h"
 #include "Model.h"
 #include "VertexBuffer.h"
 #include "VertexArray.h"
+#include "GameObject.h"
 
-Camera camera = Camera(glm::vec3(0, 0, 5));
+GameObject* camera;
 
 bool firstMouse = true;
 float lastMouseX = 0, lastMouseY = 0;
@@ -52,7 +53,7 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
         up += 1;
 
-    camera.ProcessKeyboard(forwards, sideways, up, deltaTime);
+    camera->getComponent<CameraComponent>()->ProcessKeyboard(forwards, sideways, up, deltaTime);
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
@@ -69,13 +70,13 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     lastMouseX = (float) xpos;
     lastMouseY = (float) ypos;
 
-    camera.ProcessMouseMovement(xoffset, yoffset);
+    camera->getComponent<CameraComponent>()->ProcessMouseMovement(xoffset, yoffset);
 }
 
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    camera.ProcessMouseScroll(yoffset);
+    camera->getComponent<CameraComponent>()->ProcessMouseScroll(yoffset);
 }
 
 glm::vec3 cubePositions[] = {
@@ -100,14 +101,21 @@ glm::vec3 pointLightPositions[] = {
 
 int main(int argc, char** argv)
 {
+    camera = new GameObject();
+
+    auto* camTrans = new TransformComponent();
+    camTrans->position = glm::vec3(1.0f, 2.0f, 5.0f);
+
+    camera->addComponent(camTrans);
+    camera->addComponent(new CameraComponent(camera->getComponent<TransformComponent>()));
+
     Game game("Test Game", 800, 600);
 
     glfwSetInputMode(game.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(game.window, mouse_callback);
     glfwSetScrollCallback(game.window, scroll_callback);
 
-
-    Shader program = Shader("assets/shaders/textured-flat.glsl");
+    Shader program ("assets/shaders/textured-flat.glsl");
     program.use();
 
     program.setInt("texture1", 0);
@@ -251,7 +259,7 @@ int main(int argc, char** argv)
     int frameCount = 0;
     float fpsTime = 0;
 
-    while (!glfwWindowShouldClose(game.window)) {
+    while (game.update()) {
 
         frameCount++;
 
@@ -268,10 +276,11 @@ int main(int argc, char** argv)
 
         processInput(game.window);
 
-        glm::mat4 view = camera.GetViewMatrix();
+        glm::mat4 view = camera->getComponent<CameraComponent>()->GetViewMatrix();
 
         glm::mat4 projection;
-        projection = glm::perspective(glm::radians(camera.FOV), (float)game.screenWidth/ (float)game.screenHeight, 0.1f, 100.0f);
+        projection = glm::perspective(glm::radians(camera->getComponent<CameraComponent>()->FOV), (float) game.screenWidth/(float) game.screenHeight,
+                                      0.1f, 100.0f);
 
         glBindFramebuffer(GL_FRAMEBUFFER, FBO);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -302,7 +311,7 @@ int main(int argc, char** argv)
 
         lightingShader.setMat4("view", view);
         lightingShader.setMat4("projection", projection);
-        lightingShader.setVec3("viewPos", camera.Position);
+        lightingShader.setVec3("viewPos", camera->getComponent<TransformComponent>()->position);
 
         diffuseTexture.use(0);
         specularTexture.use(1);
@@ -325,7 +334,7 @@ int main(int argc, char** argv)
             lightingShader.setFloat(base + ".quadratic", 0.032);
         }
 
-        lightingShader.setVec3("spotLight.position", camera.Position);
+        lightingShader.setVec3("spotLight.position", camera->getComponent<TransformComponent>()->position);
         lightingShader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
         lightingShader.setVec3("spotLight.diffuse", 0.2f, 0.2f, 0.2f);
         lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
@@ -333,7 +342,7 @@ int main(int argc, char** argv)
         lightingShader.setFloat("spotLight.linear", 0.09);
         lightingShader.setFloat("spotLight.quadratic", 0.032);
 
-        lightingShader.setVec3("spotLight.direction", camera.Front);
+        lightingShader.setVec3("spotLight.direction", camera->getComponent<CameraComponent>()->Front);
         lightingShader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.0f)));
         lightingShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
 
@@ -367,9 +376,6 @@ int main(int argc, char** argv)
         glDisable(GL_DEPTH_TEST);
         texColorBuffer.use(0);
         glDrawArrays(GL_TRIANGLES, 0, 6);
-
-        glfwSwapBuffers(game.window);
-        glfwPollEvents();
     }
 
     glfwTerminate();
