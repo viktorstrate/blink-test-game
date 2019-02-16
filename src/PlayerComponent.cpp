@@ -8,12 +8,17 @@
 
 #include <iostream>
 
-const float CAMERA_DEFAULT_SPEED = 3.5f;
-const float CAMERA_DEFAULT_SENSITIVITY = 0.001f;
+#define WORLD_UP glm::vec3(0.0f, 1.0f, 0.0f)
 
-PlayerComponent::PlayerComponent(TransformComponent* transform, CameraComponent* camera)
-    : transform(transform), camera(camera), MouseSensitivity(CAMERA_DEFAULT_SENSITIVITY), MovementSpeed(CAMERA_DEFAULT_SPEED)
-{}
+const float CAMERA_DEFAULT_SPEED = 3.5f;
+const float CAMERA_DEFAULT_SENSITIVITY = 0.3f;
+
+PlayerComponent::PlayerComponent(TransformComponent* transform, CameraComponent* camera, float yaw, float pitch)
+    : transform(transform), camera(camera), MouseSensitivity(CAMERA_DEFAULT_SENSITIVITY), MovementSpeed(CAMERA_DEFAULT_SPEED),
+      yaw(yaw), pitch(pitch), camFront(0.f)
+{
+    updateCameraRotation();
+}
 
 void PlayerComponent::ProcessKeyboard(float forwards, float sideways, float up, float deltaTime)
 {
@@ -27,7 +32,11 @@ void PlayerComponent::ProcessKeyboard(float forwards, float sideways, float up, 
 
     direction = glm::normalize(direction)*velocity;
 
-    transform->position += -direction.x * camera->front() + direction.y * glm::cross(camera->front(), glm::vec3(0.0f, 1.0f, 0.0f)) + direction.z*glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 camForward = camera->front();
+    camForward.y = 0;
+    camForward = glm::normalize(camForward);
+
+    transform->position += -direction.x * camForward + direction.y * glm::cross(camForward, glm::vec3(0.0f, 1.0f, 0.0f)) + direction.z*glm::vec3(0.0f, 1.0f, 0.0f);
 }
 
 void PlayerComponent::ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch)
@@ -35,35 +44,19 @@ void PlayerComponent::ProcessMouseMovement(float xoffset, float yoffset, GLboole
     xoffset *= MouseSensitivity;
     yoffset *= MouseSensitivity;
 
-//    glm::mat4 rotateMat = glm::mat4(1.0f);
-    transform->rotation = glm::rotate(transform->rotation, -xoffset, glm::vec3(0.0f, 1.0f, 0.0f));
-    transform->rotation = glm::rotate(transform->rotation, yoffset, glm::vec3(0.0f, 0.0f, 1.0f));
+    yaw -= xoffset;
+    pitch += yoffset;
 
-    glm::quat pitch = transform->rotation;
-    pitch.x = 0;
-    pitch.y = 0;
-    pitch = glm::normalize(pitch);
-
-    float angle = 2.0f*(glm::acos(pitch.z)-glm::radians(90.0f));
-
-//    float maxAngle = glm::radians(20.0f);
-//
-//    if (angle > maxAngle)
-//        transformComponent->rotation = glm::rotate(transformComponent->rotation, angle-maxAngle, glm::vec3(0.0f, 0.0f, 1.0f));
-//
-//    if (angle < -maxAngle)
-//        transformComponent->rotation = glm::rotate(transformComponent->rotation, angle+maxAngle, glm::vec3(0.0f, 0.0f, 1.0f));
-//
-    glm::vec3 euler = glm::eulerAngles(transform->rotation);
-//
-//    euler.y = (float)glfwGetTime() / 1.0f;
-//
-//    transform->rotation = glm::quat(euler);
-
+    // Make sure that when pitch is out of bounds, screen doesn't get flipped
     if (constrainPitch) {
-        std::cout << "Rotation: " << euler.x * 180.0f/3.14159f << ", " << euler.y * 180.0f/3.14159f << ", " << euler.z * 180.0f/3.14159f << std::endl;
-        std::cout << "Pitch: " << pitch.z << " Angle: " << angle << std::endl;
+        if (pitch > 89.0f)
+            pitch = 89.0f;
+        if (pitch < -89.0f)
+            pitch = -89.0f;
     }
+
+    // Update Front, Right and Up Vectors using the updated Euler angles
+    updateCameraRotation();
 }
 
 void PlayerComponent::update(float dt)
@@ -72,6 +65,20 @@ void PlayerComponent::update(float dt)
 //    transform->rotation = glm::rotate(transform->rotation, dt, glm::vec3(0.0f, 0.0f, 1.0f));
 
 //    std::cout << euler.y << std::endl;
+}
+
+void PlayerComponent::updateCameraRotation()
+{
+    glm::vec3 pitchVec(0.f);
+
+    pitchVec.x = cos(glm::radians(pitch));
+    pitchVec.z = sin(glm::radians(pitch));
+    pitchVec = glm::normalize(pitchVec);
+
+    transform->rotation = glm::quat(1.0f, 0.f, 0.f, 0.f);
+    transform->rotation = transform->rotation * pitchVec;
+
+    transform->rotation = glm::angleAxis(glm::radians(yaw), glm::vec3(0.f, 1.f, 0.f)) * transform->rotation;
 }
 
 void PlayerComponent::ProcessMouseScroll(float yoffset)

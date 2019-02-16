@@ -105,13 +105,13 @@ int main(int argc, char** argv)
 //    auto* camera = new GameObject();
 
     auto* trans = new TransformComponent();
-    trans->position = glm::vec3(0.0f, 0.0f, 5.0f);
+    trans->position = glm::vec3(0.0f, 0.0f, 0.0f);
     trans->rotation = glm::quat(glm::vec3(0.0f, glm::radians(90.0f), 0.0f));
 //    trans->rotation = glm::quat(glm::vec3(0.0f, 0.0f, 0.0f));
 
     auto* cam = new CameraComponent(trans);
 
-    auto* plComp = new PlayerComponent(trans, cam);
+    auto* plComp = new PlayerComponent(trans, cam, 90.0f, 0.0f);
 
 //    camera->addComponent(camTrans);
 //    camera->addComponent(new CameraComponent(camera->getComponent<TransformComponent>()));

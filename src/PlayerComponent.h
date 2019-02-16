@@ -11,12 +11,18 @@
 class PlayerComponent : public Component
 {
 public:
-    PlayerComponent(TransformComponent* transform, CameraComponent* camera);
+    PlayerComponent(TransformComponent* transform, CameraComponent* camera, float yaw, float pitch);
 
     float MovementSpeed;
     float MouseSensitivity;
 
+    float yaw, pitch;
+
+    glm::vec3 camFront, camRight, camUp;
+
     void update(float dt) override;
+
+    void updateCameraRotation();
 
     void ProcessKeyboard(float forwards, float sideways, float up, float deltaTime);
 
