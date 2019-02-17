@@ -16,7 +16,7 @@ const float CAMERA_DEFAULT_SENSITIVITY = 0.3f;
 
 PlayerComponent::PlayerComponent(World* world, TransformComponent* transform, CameraComponent* camera, float yaw, float pitch)
     : transform(transform), camera(camera), MouseSensitivity(CAMERA_DEFAULT_SENSITIVITY), MovementSpeed(CAMERA_DEFAULT_SPEED),
-      yaw(yaw), pitch(pitch), camFront(0.f), Component(world)
+      yaw(yaw), pitch(pitch), camFront(0.f), DynamicComponent(world)
 {
     updateCameraRotation();
 }

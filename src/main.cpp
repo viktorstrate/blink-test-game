@@ -103,6 +103,7 @@ int main(int argc, char** argv)
     Game game("Test Game", 800, 600);
 
     World world(&game);
+    game.setActiveWorld(&world);
 
     auto* trans = new TransformComponent(&world);
     trans->position = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -116,6 +117,8 @@ int main(int argc, char** argv)
     player->addComponent(trans);
     player->addComponent(cam);
     player->addComponent(plComp);
+
+    world.addGameObject(*player);
 
     glfwSetInputMode(game.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(game.window, mouse_callback);

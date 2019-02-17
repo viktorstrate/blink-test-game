@@ -6,9 +6,9 @@
 #pragma once
 
 #include <components/CameraComponent.h>
-#include "Component.h"
+#include "components/DynamicComponent.h"
 
-class PlayerComponent : public Component
+class PlayerComponent : public DynamicComponent
 {
 public:
     PlayerComponent(World* world, TransformComponent* transform, CameraComponent* camera, float yaw, float pitch);
