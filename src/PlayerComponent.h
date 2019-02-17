@@ -5,13 +5,14 @@
 
 #pragma once
 
-#include <components/CameraComponent.h>
+#include "components/CameraComponent.h"
+#include "components/TransformComponent.h"
 #include "components/DynamicComponent.h"
 
 class PlayerComponent : public DynamicComponent
 {
 public:
-    PlayerComponent(World* world, TransformComponent* transform, CameraComponent* camera, float yaw, float pitch);
+    PlayerComponent();
 
     float MovementSpeed;
     float MouseSensitivity;
@@ -20,18 +21,23 @@ public:
 
     glm::vec3 camFront, camRight, camUp;
 
-    void update(float dt) override;
-
     void updateCameraRotation();
 
-    void ProcessKeyboard(float forwards, float sideways, float up);
+    void moveCamera(float forwards, float sideways, float up, double dt);
 
-    void ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true);
+    void configure(Entity* entity) override;
 
-    void ProcessMouseScroll(float yoffset);
+    void onInput(GLFWwindow* window, double dt) override;
+
+    void onMouseMove(double xpos, double ypos) override;
+
+    void onMouseScroll(double horizontal, double vertical) override;
 
 private:
-    CameraComponent* camera;
     TransformComponent* transform;
+    CameraComponent* camera;
+
+    bool firstMouse = true;
+    double lastMouseX, lastMouseY;
 };
 

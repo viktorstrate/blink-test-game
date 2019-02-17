@@ -21,62 +21,11 @@
 #include "Model.h"
 #include "graphics/VertexBuffer.h"
 #include "graphics/VertexArray.h"
-#include "GameObject.h"
+#include "Entity.h"
 #include "PlayerComponent.h"
 #include "World.h"
 
-GameObject* player;
-
-bool firstMouse = true;
-float lastMouseX = 0, lastMouseY = 0;
-
-void processInput(GLFWwindow* window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-
-    float forwards = 0, sideways = 0, up = 0;
-
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        forwards += -1;
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        forwards += 1;
-
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        sideways += -1;
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        sideways += 1;
-
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-        up += -1;
-    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-        up += 1;
-
-    player->getComponent<PlayerComponent>()->ProcessKeyboard(forwards, sideways, up);
-}
-
-void mouse_callback(GLFWwindow* window, double xpos, double ypos)
-{
-
-    if (firstMouse) {
-        firstMouse = false;
-        lastMouseX = xpos;
-        lastMouseY = ypos;
-    }
-
-    float xoffset = (float) (xpos - lastMouseX);
-    float yoffset = (float) (lastMouseY - ypos); // reversed since y-coordinates range from bottom to top
-    lastMouseX = (float) xpos;
-    lastMouseY = (float) ypos;
-
-    player->getComponent<PlayerComponent>()->ProcessMouseMovement(xoffset, yoffset);
-}
-
-
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
-    player->getComponent<PlayerComponent>()->ProcessMouseScroll(yoffset);
-}
+Entity* player;
 
 glm::vec3 cubePositions[] = {
         glm::vec3(0.0f, 0.0f, 0.0f),
@@ -105,24 +54,14 @@ int main(int argc, char** argv)
     World world(&game);
     game.setActiveWorld(&world);
 
-    auto* trans = new TransformComponent(&world);
-    trans->position = glm::vec3(0.0f, 0.0f, 0.0f);
-    trans->rotation = glm::quat(glm::vec3(0.0f, glm::radians(90.0f), 0.0f));
+    player = new Entity();
+    player->assign<TransformComponent>();
+    player->assign<CameraComponent>();
+    player->assign<PlayerComponent>();
 
-    auto* cam = new CameraComponent(&world, trans);
-
-    auto* plComp = new PlayerComponent(&world, trans, cam, 90.0f, 0.0f);
-
-    player = new GameObject();
-    player->addComponent(trans);
-    player->addComponent(cam);
-    player->addComponent(plComp);
-
-    world.addGameObject(*player);
+    world.addEntity(*player);
 
     glfwSetInputMode(game.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwSetCursorPosCallback(game.window, mouse_callback);
-    glfwSetScrollCallback(game.window, scroll_callback);
 
     Shader program ("assets/shaders/textured-flat.glsl");
     program.use();
@@ -279,13 +218,10 @@ int main(int argc, char** argv)
             fpsTime = 0;
         }
 
-        processInput(game.window);
 
-        player->getComponent<PlayerComponent>()->update(game.deltaTime());
+        glm::mat4 view = player->get<CameraComponent>()->GetViewMatrix(player->get<TransformComponent>());
 
-        glm::mat4 view = player->getComponent<CameraComponent>()->GetViewMatrix();
-
-        glm::mat4 projection = player->getComponent<CameraComponent>()->getProjectionMatrix((float)game.screenWidth/(float)game.screenHeight);
+        glm::mat4 projection = player->get<CameraComponent>()->getProjectionMatrix((float)game.screenWidth/(float)game.screenHeight);
 
         glBindFramebuffer(GL_FRAMEBUFFER, FBO);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -316,7 +252,7 @@ int main(int argc, char** argv)
 
         lightingShader.setMat4("view", view);
         lightingShader.setMat4("projection", projection);
-        lightingShader.setVec3("viewPos", player->getComponent<TransformComponent>()->position);
+        lightingShader.setVec3("viewPos", player->get<TransformComponent>()->position);
 
         diffuseTexture.use(0);
         specularTexture.use(1);
@@ -339,7 +275,7 @@ int main(int argc, char** argv)
             lightingShader.setFloat(base + ".quadratic", 0.032);
         }
 
-        lightingShader.setVec3("spotLight.position", player->getComponent<TransformComponent>()->position);
+        lightingShader.setVec3("spotLight.position", player->get<TransformComponent>()->position);
         lightingShader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
         lightingShader.setVec3("spotLight.diffuse", 0.2f, 0.2f, 0.2f);
         lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
@@ -347,7 +283,7 @@ int main(int argc, char** argv)
         lightingShader.setFloat("spotLight.linear", 0.09);
         lightingShader.setFloat("spotLight.quadratic", 0.032);
 
-        lightingShader.setVec3("spotLight.direction", player->getComponent<CameraComponent>()->front());
+        lightingShader.setVec3("spotLight.direction", player->get<CameraComponent>()->front(player->get<TransformComponent>()));
         lightingShader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.0f)));
         lightingShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
 
@@ -356,10 +292,10 @@ int main(int argc, char** argv)
         for (unsigned int i = 0; i < 10; i++) {
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, cubePositions[i]);
-//            float angle = 20.0f*i;
+            float angle = 20.0f*i;
 
-//            model = glm::rotate(model, (float) glfwGetTime() * 0.2f, glm::vec3(0.0f, 1.0f, 0.0f));
-            model = glm::rotate(model, (float) glfwGetTime(), glm::vec3(0.0f, 0.f, 1.f));
+            model = glm::rotate(model, (float) glfwGetTime() * 0.2f, glm::vec3(0.0f, 1.0f, 0.0f));
+            model = glm::rotate(model, (float) glfwGetTime(), glm::vec3(angle, 0.f, 1.f));
 
             lightingShader.setMat4("model", model);
 
