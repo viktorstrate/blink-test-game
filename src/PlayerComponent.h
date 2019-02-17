@@ -11,7 +11,7 @@
 class PlayerComponent : public Component
 {
 public:
-    PlayerComponent(TransformComponent* transform, CameraComponent* camera, float yaw, float pitch);
+    PlayerComponent(World* world, TransformComponent* transform, CameraComponent* camera, float yaw, float pitch);
 
     float MovementSpeed;
     float MouseSensitivity;
@@ -24,7 +24,7 @@ public:
 
     void updateCameraRotation();
 
-    void ProcessKeyboard(float forwards, float sideways, float up, float deltaTime);
+    void ProcessKeyboard(float forwards, float sideways, float up);
 
     void ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true);
 

@@ -23,14 +23,12 @@
 #include "graphics/VertexArray.h"
 #include "GameObject.h"
 #include "PlayerComponent.h"
+#include "World.h"
 
 GameObject* player;
 
 bool firstMouse = true;
 float lastMouseX = 0, lastMouseY = 0;
-
-float deltaTime = 0.0f; // Time between current frame and last frame
-float lastFrame = 0.0f; // Time of last frame
 
 void processInput(GLFWwindow* window)
 {
@@ -54,7 +52,7 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
         up += 1;
 
-    player->getComponent<PlayerComponent>()->ProcessKeyboard(forwards, sideways, up, deltaTime);
+    player->getComponent<PlayerComponent>()->ProcessKeyboard(forwards, sideways, up);
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
@@ -102,26 +100,22 @@ glm::vec3 pointLightPositions[] = {
 
 int main(int argc, char** argv)
 {
-//    auto* camera = new GameObject();
+    Game game("Test Game", 800, 600);
 
-    auto* trans = new TransformComponent();
+    World world(&game);
+
+    auto* trans = new TransformComponent(&world);
     trans->position = glm::vec3(0.0f, 0.0f, 0.0f);
     trans->rotation = glm::quat(glm::vec3(0.0f, glm::radians(90.0f), 0.0f));
-//    trans->rotation = glm::quat(glm::vec3(0.0f, 0.0f, 0.0f));
 
-    auto* cam = new CameraComponent(trans);
+    auto* cam = new CameraComponent(&world, trans);
 
-    auto* plComp = new PlayerComponent(trans, cam, 90.0f, 0.0f);
-
-//    camera->addComponent(camTrans);
-//    camera->addComponent(new CameraComponent(camera->getComponent<TransformComponent>()));
+    auto* plComp = new PlayerComponent(&world, trans, cam, 90.0f, 0.0f);
 
     player = new GameObject();
     player->addComponent(trans);
     player->addComponent(cam);
     player->addComponent(plComp);
-
-    Game game("Test Game", 800, 600);
 
     glfwSetInputMode(game.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(game.window, mouse_callback);
@@ -274,11 +268,7 @@ int main(int argc, char** argv)
     while (game.update()) {
 
         frameCount++;
-
-        float currentFrame = (float) glfwGetTime();
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
-        fpsTime += deltaTime;
+        fpsTime += game.deltaTime();
 
         if (frameCount%100 == 0) {
             glfwSetWindowTitle(game.window, std::string(
@@ -288,7 +278,7 @@ int main(int argc, char** argv)
 
         processInput(game.window);
 
-        player->getComponent<PlayerComponent>()->update(deltaTime);
+        player->getComponent<PlayerComponent>()->update(game.deltaTime());
 
         glm::mat4 view = player->getComponent<CameraComponent>()->GetViewMatrix();
 

@@ -7,20 +7,21 @@
 #include <glfw/glfw3.h>
 
 #include <iostream>
+#include <World.h>
 
 #define WORLD_UP glm::vec3(0.0f, 1.0f, 0.0f)
 
 const float CAMERA_DEFAULT_SPEED = 3.5f;
 const float CAMERA_DEFAULT_SENSITIVITY = 0.3f;
 
-PlayerComponent::PlayerComponent(TransformComponent* transform, CameraComponent* camera, float yaw, float pitch)
+PlayerComponent::PlayerComponent(World* world, TransformComponent* transform, CameraComponent* camera, float yaw, float pitch)
     : transform(transform), camera(camera), MouseSensitivity(CAMERA_DEFAULT_SENSITIVITY), MovementSpeed(CAMERA_DEFAULT_SPEED),
-      yaw(yaw), pitch(pitch), camFront(0.f)
+      yaw(yaw), pitch(pitch), camFront(0.f), Component(world)
 {
     updateCameraRotation();
 }
 
-void PlayerComponent::ProcessKeyboard(float forwards, float sideways, float up, float deltaTime)
+void PlayerComponent::ProcessKeyboard(float forwards, float sideways, float up)
 {
 
     glm::vec3 direction = glm::vec3(forwards, sideways, up);
@@ -28,7 +29,7 @@ void PlayerComponent::ProcessKeyboard(float forwards, float sideways, float up, 
     if (direction.x == 0 && direction.y == 0 && direction.z == 0)
         return;
 
-    float velocity = MovementSpeed*deltaTime;
+    float velocity = MovementSpeed * world->game->deltaTime();
 
     direction = glm::normalize(direction)*velocity;
 
