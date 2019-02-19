@@ -2,9 +2,6 @@
 // Created by Viktor Hundahl Strate on 2019-02-03.
 //
 
-#include "graphics/Rendering.h"
-#include <GLFW/glfw3.h>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -18,14 +15,13 @@
 #include "Game.h"
 #include "graphics/Shader.h"
 #include "components/CameraComponent.h"
-#include "Model.h"
+#include "components/ModelComponent.h"
+#include "graphics/Model.h"
 #include "graphics/VertexBuffer.h"
 #include "graphics/VertexArray.h"
 #include "Entity.h"
 #include "PlayerComponent.h"
 #include "World.h"
-
-Entity* player;
 
 glm::vec3 cubePositions[] = {
         glm::vec3(0.0f, 0.0f, 0.0f),
@@ -54,12 +50,18 @@ int main(int argc, char** argv)
     World world(&game);
     game.setActiveWorld(&world);
 
-    player = new Entity();
+    Entity* player = world.makeEntity();
     player->assign<TransformComponent>();
     player->assign<CameraComponent>();
     player->assign<PlayerComponent>();
 
-    world.addEntity(*player);
+    world.getModelSystem().loadModel("assets/models/nanosuit/nanosuit.obj");
+
+    Entity* nanosuit = world.makeEntity();
+    nanosuit->assign<TransformComponent>();
+    nanosuit->assign<ModelComponent>();
+
+    player = &world.entities.front();
 
     glfwSetInputMode(game.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -234,11 +236,11 @@ int main(int argc, char** argv)
         lampShader.setMat4("view", view);
         lampShader.setMat4("projection", projection);
 
-        for (int i = 0; i < 4; i++) {
+        for (auto& pointLightPosition : pointLightPositions) {
 
             glm::mat4 model = glm::mat4(1.0f);
 
-            model = glm::translate(model, pointLightPositions[i]);
+            model = glm::translate(model, pointLightPosition);
             model = glm::scale(model, glm::vec3(0.2f));
 
             lampShader.setMat4("model", model);
