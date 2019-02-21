@@ -55,13 +55,18 @@ int main(int argc, char** argv)
     player->assign<CameraComponent>();
     player->assign<PlayerComponent>();
 
-    world.getModelSystem().loadModel("assets/models/nanosuit/nanosuit.obj");
+    world.activeCamera = player->get<CameraComponent>();
+
+    int modelId = world.getModelSystem().loadModel("assets/models/nanosuit/nanosuit.obj");
 
     Entity* nanosuit = world.makeEntity();
     nanosuit->assign<TransformComponent>();
-    nanosuit->assign<ModelComponent>();
+    nanosuit->assign<ModelComponent>(modelId);
 
-    player = &world.entities.front();
+    nanosuit->get<TransformComponent>()->position = glm::vec3(0.f, 2.f, 0.f);
+    nanosuit->get<TransformComponent>()->scale = glm::vec3(0.1f);
+
+//    player = &world.entities.front();
 
     glfwSetInputMode(game.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -131,8 +136,6 @@ int main(int argc, char** argv)
 
     Texture diffuseTexture = Texture("assets/textures/container2.png");
     Texture specularTexture = Texture("assets/textures/container2_specular.png");
-
-    Model character = Model("assets/models/nanosuit/nanosuit.obj");
 
     Shader lampShader("assets/shaders/lamp.glsl");
     Shader lightingShader("assets/shaders/color-light.glsl");
@@ -221,14 +224,10 @@ int main(int argc, char** argv)
         }
 
 
-        glm::mat4 view = player->get<CameraComponent>()->GetViewMatrix(player->get<TransformComponent>());
+        glm::mat4 view = player->get<CameraComponent>()->GetViewMatrix();
 
-        glm::mat4 projection = player->get<CameraComponent>()->getProjectionMatrix((float)game.screenWidth/(float)game.screenHeight);
+        glm::mat4 projection = player->get<CameraComponent>()->getProjectionMatrix();
 
-        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glEnable(GL_DEPTH_TEST);
 
         // Draw lamp
         lampShader.use();
@@ -304,14 +303,9 @@ int main(int argc, char** argv)
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
-        // Draw character
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::scale(model, glm::vec3(0.1f));
-        lightingShader.setMat4("model", model);
 
-        character.Draw(lightingShader);
 
-        // Draw framebuffer texture to quad
+        /*// Draw framebuffer texture to quad
         glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -320,7 +314,7 @@ int main(int argc, char** argv)
         quadVAO.use();
         glDisable(GL_DEPTH_TEST);
         texColorBuffer.use(0);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDrawArrays(GL_TRIANGLES, 0, 6);*/
     }
 
     glfwTerminate();
