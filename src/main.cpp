@@ -66,6 +66,18 @@ int main(int argc, char** argv)
     nanosuit->get<TransformComponent>()->position = glm::vec3(0.f, 2.f, 0.f);
     nanosuit->get<TransformComponent>()->scale = glm::vec3(0.1f);
 
+    int shaderId = world.getModelSystem().loadShader("assets/shaders/directional-light.glsl");
+    Shader* shader = world.getModelSystem().getShader(shaderId);
+
+    nanosuit->get<ModelComponent>()->setShader(shaderId);
+
+    shader->use();
+    shader->setFloat("material.shininess", 48.0f);
+    shader->setVec3("dirLight.direction", 0.2f, -2.0f, -0.2f);
+    shader->setVec3("dirLight.ambient", 0.0f, 0.0f, 0.0f);
+    shader->setVec3("dirLight.diffuse", 1.f, 1.f, 1.f);
+    shader->setVec3("dirLight.specular", 0.f, 0.f, 0.f);
+
 //    player = &world.entities.front();
 
     glfwSetInputMode(game.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
