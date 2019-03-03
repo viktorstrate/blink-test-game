@@ -16,6 +16,7 @@
 #include "graphics/Shader.h"
 #include "components/CameraComponent.h"
 #include "components/ModelComponent.h"
+#include "components/LightComponent.h"
 #include "graphics/Model.h"
 #include "graphics/VertexBuffer.h"
 #include "graphics/VertexArray.h"
@@ -66,17 +67,24 @@ int main(int argc, char** argv)
     nanosuit->get<TransformComponent>()->position = glm::vec3(0.f, 2.f, 0.f);
     nanosuit->get<TransformComponent>()->scale = glm::vec3(0.1f);
 
-    int shaderId = world.getShaderSystem().loadShader("assets/shaders/directional-light.glsl");
+    int shaderId = world.getShaderSystem().loadShader("assets/shaders/default.glsl");
     Shader* shader = world.getShaderSystem().getShader(shaderId);
 
     nanosuit->get<ModelComponent>()->setShader(shaderId);
 
     shader->use();
     shader->setFloat("material.shininess", 48.0f);
-    shader->setVec3("dirLight.direction", 0.2f, -2.0f, -0.2f);
-    shader->setVec3("dirLight.ambient", 0.0f, 0.0f, 0.0f);
-    shader->setVec3("dirLight.diffuse", 1.f, 1.f, 1.f);
-    shader->setVec3("dirLight.specular", 0.f, 0.f, 0.f);
+//    shader->setVec3("dirLight.direction", 0.2f, -2.0f, -0.2f);
+//    shader->setVec3("dirLight.ambient", 0.0f, 0.0f, 0.0f);
+//    shader->setVec3("dirLight.diffuse", 1.f, 1.f, 1.f);
+//    shader->setVec3("dirLight.specular", 0.f, 0.f, 0.f);
+
+    Entity* dirLight = world.makeEntity();
+    dirLight->assign<TransformComponent>();
+    dirLight->assign<LightComponent>();
+
+    auto* lightCmp = dirLight->get<LightComponent>();
+    lightCmp->setDirectional(glm::vec3(0.2f, -2.0f, -0.2f));
 
     glfwSetInputMode(game.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
