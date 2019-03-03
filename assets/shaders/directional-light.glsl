@@ -6,18 +6,28 @@ layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec2 aTexCoords;
 
 uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
+//uniform mat4 view;
+//uniform mat4 projection;
+
+layout (std140) uniform Camera
+{
+    mat4 view;
+    mat4 projection;
+    // Position of the camera
+    vec3 viewPos;
+};
 
 out vec3 Normal;
 out vec3 FragPos;
 out vec2 TexCoords;
+out vec3 ViewPos;
 
 void main()
 {
     Normal = mat3(transpose(inverse(model))) * aNormal;
     TexCoords = aTexCoords;
     FragPos = vec3(model * vec4(aPos, 1.0));
+    ViewPos = viewPos;
     gl_Position = projection * view * model * vec4(aPos, 1.0);
 }
 
@@ -27,6 +37,7 @@ void main()
 in vec3 Normal;
 in vec3 FragPos;
 in vec2 TexCoords;
+in vec3 ViewPos;
 
 out vec4 FragColor;
 
@@ -48,9 +59,6 @@ uniform DirLight dirLight;
 
 uniform Material material;
 
-// Position of the camera
-uniform vec3 viewPos;
-
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
 
 void main()
@@ -58,7 +66,7 @@ void main()
     vec3 result = vec3(0);
 
     vec3 norm = normalize(Normal);
-    vec3 viewDir = normalize(viewPos - FragPos);
+    vec3 viewDir = normalize(ViewPos - FragPos);
 
     result += CalcDirLight(dirLight, norm, viewDir);
 
