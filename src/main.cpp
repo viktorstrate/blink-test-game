@@ -46,10 +46,10 @@ glm::vec3 pointLightPositions[] = {
 
 int main(int argc, char** argv)
 {
-    Game game("Test Game", 800, 600);
+    Game* game = new Game("Test Game", 800, 600);
 
-    World world(&game);
-    game.setActiveWorld(&world);
+    World world(game);
+    game->setActiveWorld(&world);
 
     Entity* player = world.makeEntity();
     player->assign<TransformComponent>();
@@ -83,10 +83,32 @@ int main(int argc, char** argv)
     dirLight->assign<TransformComponent>();
     dirLight->assign<LightComponent>();
 
-    auto* lightCmp = dirLight->get<LightComponent>();
-    lightCmp->setDirectional(glm::vec3(0.2f, -2.0f, -0.2f));
+    auto* dirLightCmp = dirLight->get<LightComponent>();
+    dirLightCmp->setDirectional(glm::vec3(0.2f, -2.0f, -0.2f));
 
-    glfwSetInputMode(game.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    {
+        Entity* pointLight = world.makeEntity();
+        pointLight->assign<TransformComponent>();
+        pointLight->assign<LightComponent>();
+
+        auto* pointLightCmp = pointLight->get<LightComponent>();
+        pointLightCmp->setPoint(glm::vec3(1.f, 0.f, 1.f), 0.5f);
+        pointLightCmp->setAmbient(glm::vec3(1.0f, 0.f, 0.f));
+        pointLightCmp->setSpecular(glm::vec3(0.0f, 1.f, 0.f));
+    }
+
+    {
+        Entity* pointLight = world.makeEntity();
+        pointLight->assign<TransformComponent>();
+        pointLight->assign<LightComponent>();
+
+        auto* pointLightCmp = pointLight->get<LightComponent>();
+        pointLightCmp->setPoint(glm::vec3(1.f, 0.f, 1.f), 1.5f);
+        pointLightCmp->setAmbient(glm::vec3(1.0f, 0.f, 0.f));
+        pointLightCmp->setSpecular(glm::vec3(0.0f, 1.f, 0.f));
+    }
+
+    glfwSetInputMode(game->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     Shader program ("assets/shaders/textured-flat.glsl");
     program.use();
@@ -203,7 +225,7 @@ int main(int argc, char** argv)
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 
     // generate texture
-    Texture texColorBuffer(game.screenWidth, game.screenHeight, GL_RGB);
+    Texture texColorBuffer(game->screenWidth, game->screenHeight, GL_RGB);
     texColorBuffer.setWrap(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
 
     // attach it to currently bound framebuffer object
@@ -212,7 +234,7 @@ int main(int argc, char** argv)
     unsigned int RBO;
     glGenRenderbuffers(1, &RBO);
     glBindRenderbuffer(GL_RENDERBUFFER, RBO);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, game.screenWidth, game.screenHeight);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, game->screenWidth, game->screenHeight);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, RBO);
@@ -230,13 +252,13 @@ int main(int argc, char** argv)
     int frameCount = 0;
     float fpsTime = 0;
 
-    while (game.update()) {
+    while (game->update()) {
 
         frameCount++;
-        fpsTime += game.deltaTime();
+        fpsTime += game->deltaTime();
 
         if (frameCount%100 == 0) {
-            glfwSetWindowTitle(game.window, std::string(
+            glfwSetWindowTitle(game->window, std::string(
                     "LearnOpenGl - FPS: " + std::to_string((int) (1.0f/(fpsTime/100.0f)))).c_str());
             fpsTime = 0;
         }
